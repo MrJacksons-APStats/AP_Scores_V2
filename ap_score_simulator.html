@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AP Score Sampling Simulator</title>
+<style>
+:root{
+  --navy:#00274C; --maize:#FFCB05;
+  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#0E1A2B; --muted:#55627A; --line:#D3D9E3;
+  --sym:#00274C; --sym-new:#FFCB05; --sym-new-ink:#00274C; --param:#B3261E;
+  --btn-bg:#00274C; --btn-ink:#FFFFFF; --btn2-bg:#E4E8EF; --btn2-ink:#00274C;
+  --chip-pass-bg:#00274C; --chip-pass-ink:#FFFFFF; --chip-fail-bg:#FFFFFF; --chip-fail-ink:#00274C;
+  --focus:#2F6FDE;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#06111F; --surface:#0C1D33; --ink:#E9EEF6; --muted:#9AA8BF; --line:#22385A;
+    --sym:#FFCB05; --sym-new:#FFFFFF; --sym-new-ink:#00274C; --param:#FF8A80;
+    --btn-bg:#FFCB05; --btn-ink:#00274C; --btn2-bg:#1A3050; --btn2-ink:#E9EEF6;
+    --chip-pass-bg:#FFCB05; --chip-pass-ink:#00274C; --chip-fail-bg:#0C1D33; --chip-fail-ink:#E9EEF6;
+    --focus:#8AB4FF; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#06111F; --surface:#0C1D33; --ink:#E9EEF6; --muted:#9AA8BF; --line:#22385A;
+  --sym:#FFCB05; --sym-new:#FFFFFF; --sym-new-ink:#00274C; --param:#FF8A80;
+  --btn-bg:#FFCB05; --btn-ink:#00274C; --btn2-bg:#1A3050; --btn2-ink:#E9EEF6;
+  --chip-pass-bg:#FFCB05; --chip-pass-ink:#00274C; --chip-fail-bg:#0C1D33; --chip-fail-ink:#E9EEF6;
+  --focus:#8AB4FF; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 "Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--navy);color:#fff;border-bottom:6px solid var(--maize)}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+header .wrap{padding-top:22px;padding-bottom:18px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 20px;justify-content:space-between}
+h1{font:700 clamp(28px,4.5vw,44px)/1.05 "Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.01em}
+.pop{font-size:15px;color:#C9D4E5}
+.pop b{color:var(--maize);font-weight:600}
+main.wrap{padding-top:20px;padding-bottom:40px}
+.controls{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end}
+.field label{display:block;font:600 15px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;color:var(--muted);margin-bottom:5px;letter-spacing:.02em}
+.field input[type=number]{width:120px;font:600 22px/1 "Barlow",sans-serif;padding:8px 10px;border:2px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.field input:focus-visible,button:focus-visible,.chk input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.times{font:600 22px "Barlow",sans-serif;color:var(--muted);padding-bottom:9px}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+button{font:700 19px/1 "Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.02em;border:0;border-radius:6px;padding:12px 18px;cursor:pointer}
+.primary{background:var(--btn-bg);color:var(--btn-ink)}
+.secondary{background:var(--btn2-bg);color:var(--btn2-ink)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.toggles{display:flex;flex-wrap:wrap;gap:8px 18px;margin-left:auto}
+.chk{display:flex;align-items:center;gap:7px;font-size:15px;color:var(--muted);cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--navy)}
+.msg{min-height:1.5em;margin:10px 2px 0;font-size:15px;color:var(--muted)}
+.msg.err{color:var(--param);font-weight:600}
+.plot{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:16px;padding:10px 12px 12px}
+.plot svg{display:block;width:100%;height:auto}
+.stats{display:flex;flex-wrap:wrap;gap:4px 26px;padding:4px 8px 0;font-size:16px;color:var(--muted)}
+.stats b{color:var(--ink);font-weight:600}
+.stats .brk{flex-basis:100%;height:0}
+.m{font-family:"STIX Two Text","Times New Roman",serif;font-style:italic;font-weight:500;font-size:1.12em;color:var(--ink)}
+.last{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:16px;padding:14px 18px}
+.last h2{font:700 22px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0 0 4px}
+.last .calc{font-size:17px;margin:0 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:flex;flex-direction:column;align-items:center;min-width:46px;padding:3px 6px 4px;border-radius:5px;border:2px solid var(--chip-pass-bg);line-height:1.1}
+.chip small{font-size:11px;opacity:.8}
+.chip span{font:700 19px "Barlow",sans-serif}
+.chip.pass{background:var(--chip-pass-bg);color:var(--chip-pass-ink)}
+.chip.fail{background:var(--chip-fail-bg);color:var(--chip-fail-ink)}
+.legend{font-size:14px;color:var(--muted);margin-top:8px}
+.empty{color:var(--muted);margin:0}
+@media (max-width:640px){
+  .toggles{margin-left:0}
+  .field input[type=number]{width:100px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Sampling AP Scores</h1>
+    <div class="pop">Population: <b>253</b> AP Statistics students</div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="controls" aria-label="Simulation controls">
+    <div class="field">
+      <label for="numSamples">Number of samples</label>
+      <input id="numSamples" type="number" min="1" max="1000" step="1" value="30" inputmode="numeric">
+    </div>
+    <div class="times" aria-hidden="true">×</div>
+    <div class="field">
+      <label for="n">Sample size (n)</label>
+      <input id="n" type="number" min="1" max="253" step="1" value="10" inputmode="numeric">
+    </div>
+    <div class="btns">
+      <button class="primary" id="go">Take samples</button>
+      <button class="secondary" id="one">Take 1 sample</button>
+      <button class="secondary" id="reset">Clear plots</button>
+    </div>
+    <div class="toggles">
+      <label class="chk"><input type="checkbox" id="animate" checked> Add samples one at a time</label>
+      <label class="chk"><input type="checkbox" id="showParam"> Show population values</label>
+    </div>
+  </section>
+  <p class="msg" id="msg" role="status"></p>
+
+  <section class="plot" aria-label="Dotplot of sample proportions">
+    <svg id="svgP" viewBox="0 0 960 350" role="img"></svg>
+    <div class="stats" id="statsP"></div>
+  </section>
+
+  <section class="plot" aria-label="Dotplot of sample means">
+    <svg id="svgM" viewBox="0 0 960 350" role="img"></svg>
+    <div class="stats" id="statsM"></div>
+  </section>
+
+  <section class="last" aria-live="polite">
+    <h2>Most recent sample</h2>
+    <div id="lastBody"><p class="empty">Choose a sample size and press Take samples. Each sample’s students and scores will show here.</p></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  // AP scores for students #1–#253 (index 0 = student #1)
+  const SCORES=[3,1,5,5,3,3,5,5,3,5,2,1,2,3,5,4,5,5,5,2,5,2,4,3,3,4,5,5,2,4,3,2,1,4,2,2,2,2,3,5,1,3,1,1,2,3,3,3,1,4,3,2,5,4,1,5,3,2,3,5,3,3,3,2,4,4,2,3,2,5,1,4,4,2,1,5,3,5,4,4,5,2,4,4,4,2,2,1,4,5,3,1,4,1,4,3,3,3,4,1,3,5,1,2,4,1,1,1,2,5,4,3,5,3,5,4,1,4,3,3,3,4,4,2,3,3,3,1,3,2,5,3,2,5,5,1,5,5,4,3,4,2,3,1,5,3,2,3,5,1,3,4,1,3,5,5,3,1,4,1,5,5,1,3,1,5,2,1,4,4,1,5,4,2,4,3,3,1,1,5,3,2,5,2,4,4,4,2,5,5,2,5,4,4,2,1,2,5,2,1,3,1,3,1,3,5,5,3,3,2,1,3,4,3,5,1,5,4,3,2,5,2,3,5,3,5,1,3,5,3,4,3,2,3,2,2,3,2,5,1,4,2,1,1,4,5,5,2,3,5,2,5,3];
+  const N=SCORES.length;
+  const P_POP=SCORES.filter(s=>s>=3).length/N;
+  const MU_POP=SCORES.reduce((a,b)=>a+b,0)/N;
+  const SVGNS="http://www.w3.org/2000/svg";
+
+  const $=id=>document.getElementById(id);
+  const nIn=$("n"), kIn=$("numSamples"), msg=$("msg");
+  let samples=[];      // {phat, xbar, idx:[...], batch}
+  let currentN=null;   // n used for the samples currently plotted
+  let batch=0, busy=false, timer=null;
+
+  const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(reduceMotion) $("animate").checked=false;
+
+  function readInt(el,lo,hi,name){
+    const v=Number(el.value);
+    if(!Number.isInteger(v)||v<lo||v>hi){ setMsg(`${name} must be a whole number from ${lo} to ${hi}.`,true); el.focus(); return null; }
+    return v;
+  }
+  function setMsg(t,err){ msg.textContent=t||""; msg.className="msg"+(err?" err":""); }
+
+  function drawSample(n){
+    // Simple random sample without replacement (partial Fisher–Yates)
+    const pool=Array.from({length:N},(_,i)=>i);
+    for(let i=0;i<n;i++){
+      const j=i+Math.floor(Math.random()*(N-i));
+      [pool[i],pool[j]]=[pool[j],pool[i]];
+    }
+    const idx=pool.slice(0,n).sort((a,b)=>a-b);
+    let pass=0,sum=0;
+    for(const i of idx){ if(SCORES[i]>=3) pass++; sum+=SCORES[i]; }
+    return {idx, pass, phat:pass/n, xbar:sum/n};
+  }
+
+  function ensureN(n){
+    if(currentN!==null && currentN!==n && samples.length){
+      samples=[]; setMsg(`Sample size changed to ${n}, so the plots were cleared.`);
+    }
+    currentN=n;
+  }
+
+  function addSamples(k,n){
+    batch++;
+    const animate=$("animate").checked && k>1 && !reduceMotion;
+    if(!animate){
+      for(let i=0;i<k;i++){ const s=drawSample(n); s.batch=batch; samples.push(s); }
+      renderAll(); return;
+    }
+    busy=true; setButtons();
+    let done=0;
+    const delay=Math.max(15,Math.min(250,4000/k));
+    timer=setInterval(()=>{
+      const s=drawSample(n); s.batch=batch; samples.push(s); done++;
+      renderAll();
+      if(done>=k){ clearInterval(timer); timer=null; busy=false; setButtons(); }
+    },delay);
+  }
+
+  function setButtons(){ $("go").disabled=busy; $("one").disabled=busy; nIn.disabled=busy; kIn.disabled=busy; }
+
+  $("go").addEventListener("click",()=>{
+    const n=readInt(nIn,1,N,"Sample size"); if(n===null) return;
+    const k=readInt(kIn,1,1000,"Number of samples"); if(k===null) return;
+    if(samples.length+k>10000){ setMsg("The plots hold up to 10,000 samples. Clear plots to start again.",true); return; }
+    setMsg(""); ensureN(n); addSamples(k,n);
+  });
+  $("one").addEventListener("click",()=>{
+    const n=readInt(nIn,1,N,"Sample size"); if(n===null) return;
+    setMsg(""); ensureN(n); addSamples(1,n);
+  });
+  $("reset").addEventListener("click",()=>{
+    if(timer){clearInterval(timer);timer=null;busy=false;setButtons();}
+    samples=[]; currentN=null; setMsg("Plots cleared."); renderAll();
+  });
+  $("showParam").addEventListener("change",renderAll);
+  nIn.addEventListener("change",()=>{
+    const v=Number(nIn.value);
+    if(Number.isInteger(v)&&v>=1&&v<=N&&samples.length&&v!==currentN){
+      samples=[]; currentN=v; setMsg(`Sample size changed to ${v}, so the plots were cleared.`); renderAll();
+    } else if(!samples.length){ renderAll(); }
+  });
+  [nIn,kIn].forEach(el=>el.addEventListener("keydown",e=>{ if(e.key==="Enter") $("go").click(); }));
+
+  // ---------- Dotplot ----------
+  const W=960,ML=34,MR=34,MT=16,LABEL_BAND=28,BOTTOM=76,MIN_AREA=230,MAX_AREA=560;
+  const PW=W-ML-MR;
+
+  function el(tag,attrs,parent){
+    const e=document.createElementNS(SVGNS,tag);
+    for(const k in attrs) e.setAttribute(k,attrs[k]);
+    if(parent) parent.appendChild(e);
+    return e;
+  }
+
+  function drawPlot(svg,cfg){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const {lo,hi,ticks,fmt,values,step,label,sym,param,paramLabel}=cfg;
+    // Stack symbols: exact values when they are far enough apart, otherwise pixel columns
+    const spacingPx=step/(hi-lo)*PW;
+    const MINCOL=14, BASE=22;
+    let colW, keyOf, xOf;
+    const sx0=v=>ML+(v-lo)/(hi-lo)*PW;
+    if(spacingPx>=MINCOL){
+      colW=Math.min(BASE,spacingPx);
+      keyOf=v=>Math.round((v-lo)/step);
+      xOf=k=>sx0(lo+k*step);
+    } else {
+      colW=MINCOL;
+      keyOf=v=>Math.round((sx0(v)-ML)/colW);
+      xOf=k=>ML+k*colW;
+    }
+    const stacks=new Map();
+    values.forEach(o=>{ const k=keyOf(o.v); if(!stacks.has(k)) stacks.set(k,[]); stacks.get(k).push(o); });
+    let maxStack=0; stacks.forEach(a=>{ if(a.length>maxStack) maxStack=a.length; });
+    // Grow the plot taller as stacks rise, up to a cap, then shrink symbols
+    const area=Math.max(MIN_AREA,Math.min(MAX_AREA,maxStack*colW*1.05+4));
+    const H=MT+LABEL_BAND+area+BOTTOM, AXIS_Y=H-BOTTOM;
+    svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const sx=v=>ML+(v-lo)/(hi-lo)*PW;
+    const css=getComputedStyle(document.documentElement);
+    const ink=css.getPropertyValue("--ink").trim(), muted=css.getPropertyValue("--muted").trim();
+    const symC=css.getPropertyValue("--sym").trim(), newBg=css.getPropertyValue("--sym-new").trim(), newInk=css.getPropertyValue("--sym-new-ink").trim();
+    const paramC=css.getPropertyValue("--param").trim(), line=css.getPropertyValue("--line").trim();
+
+    // axis
+    el("line",{x1:ML,x2:W-MR,y1:AXIS_Y,y2:AXIS_Y,stroke:ink,"stroke-width":1.5},svg);
+    ticks.forEach(t=>{
+      const x=sx(t);
+      el("line",{x1:x,x2:x,y1:AXIS_Y,y2:AXIS_Y+7,stroke:ink,"stroke-width":1.5},svg);
+      const tx=el("text",{x:x,y:AXIS_Y+26,"text-anchor":"middle","font-size":16,fill:ink,"font-family":"Barlow, system-ui, sans-serif"},svg);
+      tx.textContent=fmt(t);
+    });
+    const lab=el("text",{x:ML+PW/2,y:H-18,"text-anchor":"middle","font-size":19,"font-weight":600,fill:ink,"font-family":"Barlow, system-ui, sans-serif"},svg);
+    lab.textContent=label;
+
+    if(!values.length){
+      const e=el("text",{x:ML+PW/2,y:AXIS_Y/2+10,"text-anchor":"middle","font-size":17,fill:muted,"font-family":"Barlow, system-ui, sans-serif"},svg);
+      e.textContent="No samples yet";
+    }
+
+    const avail=area;
+    const rowH=Math.min(colW*1.05, maxStack?avail/maxStack:colW);
+    const size=Math.min(colW,rowH/1.05);
+    const g=el("g",{},svg);
+    stacks.forEach((arr,k)=>{
+      const x=xOf(k);
+      arr.forEach((o,i)=>{
+        const yBottom=AXIS_Y-3-i*rowH;
+        if(o.isNew) el("rect",{x:x-size/2,y:yBottom-rowH+0.5,width:size,height:Math.max(rowH-1,1),rx:Math.min(3,size/5),fill:newBg},g);
+        const c=o.isNew?newInk:symC;
+        if(size<7){
+          el("circle",{cx:x,cy:yBottom-rowH/2,r:Math.max(size/2-0.5,1),fill:c},g);
+        } else {
+          drawSymbol(g,sym,x,yBottom,size,rowH,c);
+        }
+      });
+    });
+
+    if(param!=null){
+      const x=sx(param);
+      el("line",{x1:x,x2:x,y1:MT,y2:AXIS_Y,stroke:paramC,"stroke-width":2,"stroke-dasharray":"7 5"},svg);
+      const t=el("text",{x:x+(x>W-200?-8:8),y:MT+14,"text-anchor":x>W-200?"end":"start","font-size":17,"font-weight":600,fill:paramC,"font-family":"Barlow, system-ui, sans-serif"},svg);
+      t.textContent=paramLabel;
+    }
+  }
+
+  // p-hat or x-bar, drawn as a letter with a hand-placed hat/bar so it renders the same everywhere
+  function drawSymbol(g,sym,x,yBottom,size,rowH,color){
+    const fs=size*0.95;
+    const base=yBottom-rowH*0.24;
+    const t=el("text",{x:x,y:base,"text-anchor":"middle","font-size":fs,"font-style":"italic","font-weight":600,fill:color,
+      "font-family":"'STIX Two Text','Times New Roman',Times,serif"},g);
+    t.textContent=sym;
+    const sw=Math.max(1,size*0.08);
+    if(sym==="p"){
+      const top=base-fs*0.78, wing=base-fs*0.6, half=fs*0.22;
+      el("polyline",{points:`${x-half+fs*0.05},${wing} ${x+fs*0.05},${top} ${x+half+fs*0.05},${wing}`,fill:"none",stroke:color,"stroke-width":sw,"stroke-linejoin":"round","stroke-linecap":"round"},g);
+    } else {
+      const y=base-fs*0.66, half=fs*0.24;
+      el("line",{x1:x-half+fs*0.03,x2:x+half+fs*0.03,y1:y,y2:y,stroke:color,"stroke-width":sw,"stroke-linecap":"round"},g);
+    }
+  }
+
+  function summary(vals){
+    const k=vals.length; if(!k) return null;
+    const mean=vals.reduce((a,b)=>a+b,0)/k;
+    const sd=k>1?Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/(k-1)):null;
+    let min=Infinity,max=-Infinity; for(const v of vals){ if(v<min) min=v; if(v>max) max=v; }
+    return {k,mean,sd,min,max};
+  }
+  const spread=(s,sym)=>`<span class="brk"></span><span>Min = <b>${s.min.toFixed(3)}</b></span><span>Max = <b>${s.max.toFixed(3)}</b></span><span>Range = ${s.max.toFixed(3)} − ${s.min.toFixed(3)} = <b>${(s.max-s.min).toFixed(3)}</b></span>`;
+
+  function renderAll(){
+    const nShow=currentN ?? (Number.isInteger(Number(nIn.value))?Number(nIn.value):"n");
+    const showP=$("showParam").checked;
+    const lastS=samples[samples.length-1];
+    const nNum=typeof nShow==="number"?nShow:10;
+
+    drawPlot($("svgP"),{
+      lo:0,hi:1,ticks:[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1],fmt:t=>t===0||t===1?String(t):t.toFixed(1),
+      step:1/nNum,sym:"p",
+      values:samples.map(s=>({v:s.phat,isNew:s===lastS})),
+      label:`Sample proportion of students passing the AP Exam (sample size = ${nShow})`,
+      param:showP?P_POP:null,paramLabel:`p = ${P_POP.toFixed(3)}`
+    });
+    drawPlot($("svgM"),{
+      lo:1,hi:5,ticks:[1,1.5,2,2.5,3,3.5,4,4.5,5],fmt:t=>Number.isInteger(t)?String(t):t.toFixed(1),
+      step:1/nNum,sym:"x",
+      values:samples.map(s=>({v:s.xbar,isNew:s===lastS})),
+      label:`Sample Mean AP Exam Score (sample size = ${nShow})`,
+      param:showP?MU_POP:null,paramLabel:`μ = ${MU_POP.toFixed(3)}`
+    });
+    $("svgP").setAttribute("aria-label",`Dotplot of ${samples.length} sample proportions`);
+    $("svgM").setAttribute("aria-label",`Dotplot of ${samples.length} sample means`);
+
+    const sP=summary(samples.map(s=>s.phat)), sM=summary(samples.map(s=>s.xbar));
+    const phat='<span class="m">p̂</span>', xbar='<span class="m">x̄</span>';
+    $("statsP").innerHTML=sP?`<span>Samples: <b>${sP.k}</b></span><span>Mean of ${phat} values: <b>${sP.mean.toFixed(3)}</b></span><span>SD of ${phat} values: <b>${sP.sd==null?"—":sP.sd.toFixed(3)}</b></span>${spread(sP)}`:"";
+    $("statsM").innerHTML=sM?`<span>Samples: <b>${sM.k}</b></span><span>Mean of ${xbar} values: <b>${sM.mean.toFixed(3)}</b></span><span>SD of ${xbar} values: <b>${sM.sd==null?"—":sM.sd.toFixed(3)}</b></span>${spread(sM)}`:"";
+
+    const last=samples[samples.length-1];
+    if(!last){
+      $("lastBody").innerHTML='<p class="empty">Choose a sample size and press Take samples. Each sample’s students and scores will show here.</p>';
+      return;
+    }
+    const n=last.idx.length, sum=last.idx.reduce((a,i)=>a+SCORES[i],0);
+    const chips=last.idx.map(i=>`<div class="chip ${SCORES[i]>=3?"pass":"fail"}" title="Student #${i+1}: score ${SCORES[i]}"><small>#${i+1}</small><span>${SCORES[i]}</span></div>`).join("");
+    $("lastBody").innerHTML=
+      `<p class="calc">${phat} = ${last.pass}/${n} = <b>${last.phat.toFixed(3)}</b> &nbsp;&nbsp;&nbsp; ${xbar} = ${sum}/${n} = <b>${last.xbar.toFixed(3)}</b></p>`+
+      `<div class="chips">${chips}</div>`+
+      `<p class="legend">Filled boxes are passing scores (3 or higher). Small number is the student number. The highlighted symbol on each dotplot is this sample.</p>`;
+  }
+
+  if(window.matchMedia){
+    const mq=window.matchMedia("(prefers-color-scheme: dark)");
+    (mq.addEventListener?mq.addEventListener("change",renderAll):mq.addListener(renderAll));
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
